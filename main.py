@@ -1,20 +1,25 @@
 import os
 from dotenv import load_dotenv
+from fastapi import FastAPI
+import uvicorn
 import asyncio
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
+URL = os.getenv("URL")
+bot = Application.builder().token(TOKEN).build()
+app = FastAPI()
 
 users = {}
 
 emojis = {
-    1 : "🎰",
-    2 : "🎲",
-    3 : "🎯",
-    4 : "⚽",
-    5 : "🏀"
+    "1" : "🎰",
+    "2" : "🎲",
+    "3" : "🎯",
+    "4" : "⚽",
+    "5" : "🏀"
 }
 
 KeyBoard = [
@@ -35,11 +40,11 @@ async def start(update, context):
     
 
 async def ChooseEmoji(update, context):
-    id = update.effective_user.id
     query = update.callback_query
     await query.answer()
 
-    emo = emojis[int(query.data)]
+    id = query.message.chat.id
+    emo = emojis[query.data]
     
     task =  asyncio.create_task(emoji(update=update, context=context, id=id,emo=emo))
     users[id] = task
@@ -56,10 +61,25 @@ async def stop(update, context):
     await update.message.reply_text("Quitter")
 
 
-bot = Application.builder().token(TOKEN).build()
+
 bot.add_handler(CommandHandler("start", start))
 bot.add_handler(CommandHandler("stop", stop))
 bot.add_handler(CallbackQueryHandler(ChooseEmoji))
 
-bot.run_polling(poll_interval=1, timeout=10)
+
+
+@app.post("/webhook")
+async def webhook(request):
+    update = Update.de_json(await request.json(), bot.bot)
+    await bot.process_update(update)
+
+    return {"status" : "working"}
+
+
+@app.on_event("startup")
+async def startup():
+    await bot.initialize()
+    await bot.bot.set_webhook(url=URL)
+    await bot.start()
+
 

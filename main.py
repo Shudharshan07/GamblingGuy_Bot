@@ -66,6 +66,9 @@ bot.add_handler(CommandHandler("start", start))
 bot.add_handler(CommandHandler("stop", stop))
 bot.add_handler(CallbackQueryHandler(ChooseEmoji))
 
+@app.get("/")
+async def root():
+    return {"message": "working"}
 
 
 @app.post("/webhook")

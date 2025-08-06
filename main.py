@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 import uvicorn
 import asyncio
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
@@ -72,8 +72,9 @@ async def root():
 
 
 @app.post("/webhook")
-async def webhook(request):
-    update = Update.de_json(await request.json(), bot.bot)
+async def webhook(request: Request):
+    data = await request.json()
+    update = Update.de_json(data, bot.bot)
     await bot.process_update(update)
 
     return {"status" : "working"}
